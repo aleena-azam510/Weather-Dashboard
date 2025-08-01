@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Pakistan Weather Dashboard | Real-time Forecasts</title>
+    <meta name="description" content="Comprehensive weather dashboard for Pakistani cities with real-time data, forecasts, and weather alerts">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Orbitron:wght@500;700&display=swap">
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.10.2/lottie.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        body {
+            background-color: #0b0c1d;
+            color: #ffffff;
+        }
+        .main-nav {
+            background: rgba(11, 12, 29, 0.8);
+        }
+        .card {
+            background: #1a1b32;
+            border: 1px solid #2d2e46;
+        }
+        .search-box input {
+            background: #2d2e46;
+            color: #ffffff;
+        }
+        .search-btn, .location-btn, .city-btn, .download-btn, .map-tab {
+            background-color: #3b3c58;
+            border-color: #5d5f80;
+        }
+        .search-btn:hover, .location-btn:hover, .city-btn:hover, .download-btn:hover, .map-tab:hover, .map-tab.active {
+            background-color: #5d5f80;
+        }
+        .recent-searches span, .footer-legal a {
+            color: #b3b3c7;
+        }
+        .footer-section {
+            background: #1a1b32;
+        }
+        .footer-links li a {
+            color: #b3b3c7;
+        }
+        .footer-links li a:hover {
+            color: #ffffff;
+        }
+        .loading-screen {
+            background: #0b0c1d;
+        }
+        .nav-link.active {
+            background-color: #2d2e46;
+        }
+        .aqi-scale .scale-item {
+            color: #fff;
+        }
+        .aqi-scale .good { background-color: #008000; }
+        .aqi-scale .moderate { background-color: #FFFF00; color: #000; }
+        .aqi-scale .sensitive { background-color: #FFA500; }
+        .aqi-scale .unhealthy { background-color: #FF0000; }
+        .aqi-scale .very-unhealthy { background-color: #800080; }
+        .aqi-scale .hazardous { background-color: #800000; }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <div class="loading-animation"></div>
+            <p>Loading Pakistan Weather Data...</p>
+        </div>
+    </div>
+
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="flag">🇵🇰</span>
+                <h1>Pakistan Weather</h1>
+            </div>
+            
+            <div class="nav-menu" id="navMenu">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="#current" class="nav-link active"><i class="fas fa-cloud-sun"></i> Current</a></li>
+                    <li class="nav-item"><a href="#forecast" class="nav-link"><i class="fas fa-calendar-alt"></i> Forecast</a></li>
+                    <li class="nav-item"><a href="#maps" class="nav-link"><i class="fas fa-map"></i> Maps</a></li>
+                    <li class="nav-item"><a href="#alerts" class="nav-link"><i class="fas fa-bell"></i> Alerts</a></li>
+                    <li class="nav-item"><a href="#about" class="nav-link"><i class="fas fa-info-circle"></i> About</a></li>
+                </ul>
+                
+                <div class="nav-actions">
+                    <div class="header-info">
+                        <div class="time-display" id="localTime">
+                            <i class="fas fa-clock"></i> <span id="currentTime">10:30 AM</span>
+                        </div>
+                        <div class="date-display" id="localDate">
+                            <i class="fas fa-calendar-day"></i> <span id="currentDate">1 Aug 2025</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="nav-toggle" id="navToggle" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <section id="current" class="main-section">
+            <div class="section-header">
+                <h2><i class="fas fa-location-dot"></i> Current Weather Conditions</h2>
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="cityInput" placeholder="Search any city in Pakistan..." value="Lahore" />
+                        <button onclick="fetchWeather()" class="search-btn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button onclick="getLocation()" class="location-btn">
+                            <i class="fas fa-location-arrow"></i> My Location
+                        </button>
+                    </div>
+                    <div class="recent-searches" id="recentSearches">
+                        <span>Recent:</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card current-weather">
+                <div class="weather-display">
+                    <div class="location-info">
+                        <h3 id="location">Weather in Lahore</h3>
+                        <div class="coordinates" id="coordinates">
+                            <span id="latitude">31.5204° N</span>, 
+                            <span id="longitude">74.3587° E</span>
+                        </div>
+                    </div>
+
+                    <div class="weather-main">
+                        <div class="lottie-container" id="lottie">
+                            <i class="fas fa-sun" style="font-size: 80px; color: yellow;"></i>
+                        </div>
+                        <div class="temp-container">
+                            <div id="temperature">35°C</div>
+                            <div class="temp-range">
+                                <span id="temp-min"><i class="fas fa-temperature-low"></i> 28°</span> / 
+                                <span id="temp-max"><i class="fas fa-temperature-high"></i> 38°</span>
+                            </div>
+                            <div class="feels-like" id="feelsLike">Feels like 38°C</div>
+                        </div>
+                    </div>
+
+                    <div class="description" id="description">Clear Sky</div>
+
+                    <div class="weather-details">
+                        <div class="detail-item">
+                            <i class="fas fa-wind"></i>
+                            <div>
+                                <span class="detail-label">Wind</span>
+                                <span id="wind-speed">15 km/h</span>
+                                <span id="wind-direction">(E)</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-tint"></i>
+                            <div>
+                                <span class="detail-label">Humidity</span>
+                                <span id="humidity">65%</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-eye"></i>
+                            <div>
+                                <span class="detail-label">Visibility</span>
+                                <span id="visibility">10 km</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-cloud-rain"></i>
+                            <div>
+                                <span class="detail-label">Precipitation</span>
+                                <span id="precipitation">0 mm</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-cloud"></i>
+                            <div>
+                                <span class="detail-label">Cloud Cover</span>
+                                <span id="cloud-cover">10%</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-sun"></i>
+                            <div>
+                                <span class="detail-label">UV Index</span>
+                                <span id="uv-index">8</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-weight-hanging"></i>
+                            <div>
+                                <span class="detail-label">Pressure</span>
+                                <span id="pressure">1012 hPa</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-smog"></i>
+                            <div>
+                                <span class="detail-label">Air Quality</span>
+                                <span id="air-quality">Moderate</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sun-times">
+                        <div class="sun-item sunrise">
+                            <i class="fas fa-sunrise"></i>
+                            <span id="sunrise">05:15 AM</span>
+                        </div>
+                        <div class="sun-item sunset">
+                            <i class="fas fa-sunset"></i>
+                            <span id="sunset">07:05 PM</span>
+                        </div>
+                        <div class="sun-item daylight">
+                            <i class="fas fa-sun"></i>
+                            <span id="daylight">13h 50m</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card hourly-forecast">
+                <h3><i class="fas fa-clock"></i> Hourly Forecast</h3>
+                <div class="hourly-container" id="hourlyForecast">
+                    <div class="hourly-item">
+                        <div class="hourly-time">11:00</div>
+                        <div class="hourly-icon"><i class="fas fa-sun" style="color: yellow;"></i></div>
+                        <div class="hourly-temp">36°</div>
+                    </div>
+                    <div class="hourly-item">
+                        <div class="hourly-time">12:00</div>
+                        <div class="hourly-icon"><i class="fas fa-cloud-sun" style="color: #92d4ff;"></i></div>
+                        <div class="hourly-temp">37°</div>
+                    </div>
+                    <div class="hourly-item">
+                        <div class="hourly-time">13:00</div>
+                        <div class="hourly-icon"><i class="fas fa-cloud-sun" style="color: #92d4ff;"></i></div>
+                        <div class="hourly-temp">37°</div>
+                    </div>
+                    <div class="hourly-item">
+                        <div class="hourly-time">14:00</div>
+                        <div class="hourly-icon"><i class="fas fa-cloud" style="color: #ffffff;"></i></div>
+                        <div class="hourly-temp">36°</div>
+                    </div>
+                    <div class="hourly-item">
+                        <div class="hourly-time">15:00</div>
+                        <div class="hourly-icon"><i class="fas fa-cloud-showers-heavy" style="color: #6495ED;"></i></div>
+                        <div class="hourly-temp">34°</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="forecast" class="main-section">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-days"></i> 5-Day Forecast</h2>
+            </div>
+            
+            <div class="card forecast-section">
+                <div class="forecast-container" id="forecast">
+                    <div class="forecast-item">
+                        <div class="forecast-day">Fri</div>
+                        <div class="forecast-date">Aug 2</div>
+                        <div class="forecast-icon"><i class="fas fa-sun" style="color: yellow;"></i></div>
+                        <div class="forecast-temp">38° / 29°</div>
+                        <div class="forecast-desc">Clear Sky</div>
+                    </div>
+                    <div class="forecast-item">
+                        <div class="forecast-day">Sat</div>
+                        <div class="forecast-date">Aug 3</div>
+                        <div class="forecast-icon"><i class="fas fa-cloud-sun" style="color: #92d4ff;"></i></div>
+                        <div class="forecast-temp">36° / 28°</div>
+                        <div class="forecast-desc">Partly Cloudy</div>
+                    </div>
+                    <div class="forecast-item">
+                        <div class="forecast-day">Sun</div>
+                        <div class="forecast-date">Aug 4</div>
+                        <div class="forecast-icon"><i class="fas fa-cloud-showers-heavy" style="color: #6495ED;"></i></div>
+                        <div class="forecast-temp">32° / 27°</div>
+                        <div class="forecast-desc">Rain showers</div>
+                    </div>
+                    <div class="forecast-item">
+                        <div class="forecast-day">Mon</div>
+                        <div class="forecast-date">Aug 5</div>
+                        <div class="forecast-icon"><i class="fas fa-bolt" style="color: #FFFF00;"></i></div>
+                        <div class="forecast-temp">30° / 26°</div>
+                        <div class="forecast-desc">Thunderstorms</div>
+                    </div>
+                    <div class="forecast-item">
+                        <div class="forecast-day">Tue</div>
+                        <div class="forecast-date">Aug 6</div>
+                        <div class="forecast-icon"><i class="fas fa-cloud" style="color: #ffffff;"></i></div>
+                        <div class="forecast-temp">34° / 28°</div>
+                        <div class="forecast-desc">Cloudy</div>
+                    </div>
+                </div>
+                
+                <div class="forecast-chart">
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="maps" class="main-section">
+            <div class="section-header">
+                <h2><i class="fas fa-map-location-dot"></i> Weather Maps</h2>
+            </div>
+            
+            <div class="card maps-section">
+                <div class="map-tabs">
+                    <button class="map-tab active" data-map="temperature">
+                        <i class="fas fa-temperature-three-quarters"></i> Temperature
+                    </button>
+                    <button class="map-tab" data-map="precipitation">
+                        <i class="fas fa-cloud-rain"></i> Precipitation
+                    </button>
+                    <button class="map-tab" data-map="wind">
+                        <i class="fas fa-wind"></i> Wind
+                    </button>
+                    <button class="map-tab" data-map="clouds">
+                        <i class="fas fa-cloud"></i> Cloud Cover
+                    </button>
+                </div>
+                <div class="map-container">
+                    <div class="map-display active" id="temperatureMap">
+                        <img src="https://via.placeholder.com/800x600.png?text=Temperature+Map+of+Pakistan" alt="Temperature Map" style="width: 100%; height: auto; border-radius: 8px;">
+                        <div class="map-legend">
+                            <div class="legend-item" style="background: #0000FF;">&lt; 0°C</div>
+                            <div class="legend-item" style="background: #00AAFF;">0-10°C</div>
+                            <div class="legend-item" style="background: #00FFAA;">10-20°C</div>
+                            <div class="legend-item" style="background: #FFFF00;">20-30°C</div>
+                            <div class="legend-item" style="background: #FFA500;">30-40°C</div>
+                            <div class="legend-item" style="background: #FF0000;">&gt; 40°C</div>
+                        </div>
+                    </div>
+                    <div class="map-display" id="precipitationMap">
+                        <img src="https://via.placeholder.com/800x600.png?text=Precipitation+Map+of+Pakistan" alt="Precipitation Map" style="width: 100%; height: auto; border-radius: 8px; display: none;">
+                    </div>
+                    <div class="map-display" id="windMap">
+                        <img src="https://via.placeholder.com/800x600.png?text=Wind+Map+of+Pakistan" alt="Wind Map" style="width: 100%; height: auto; border-radius: 8px; display: none;">
+                    </div>
+                    <div class="map-display" id="cloudsMap">
+                        <img src="https://via.placeholder.com/800x600.png?text=Cloud+Cover+Map+of+Pakistan" alt="Cloud Map" style="width: 100%; height: auto; border-radius: 8px; display: none;">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="alerts" class="main-section">
+            <div class="section-header">
+                <h2><i class="fas fa-triangle-exclamation"></i> Weather Alerts</h2>
+            </div>
+            
+            <div class="card alerts-section">
+                <div class="alerts-header">
+                    <h3>Active Alerts <span class="badge" id="alertCount">1</span></h3>
+                </div>
+                <div class="alerts-container" id="weatherAlerts">
+                    <div class="alert-item high">
+                        <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="alert-info">
+                            <h4 class="alert-title">Heatwave Warning</h4>
+                            <p class="alert-description">A severe heatwave is expected in Lahore and surrounding areas. Temperatures may reach up to 45°C. Stay hydrated and avoid outdoor activities.</p>
+                            <div class="alert-meta">
+                                <span class="alert-start">Starts: Aug 1, 2025 10:00 AM</span>
+                                <span class="alert-end">Ends: Aug 3, 2025 06:00 PM</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="no-alerts" style="display: none;">
+                        <i class="fas fa-check-circle"></i>
+                        <p>No active weather alerts for your location</p>
+                    </div>
+                </div>
+                
+                <div class="historical-events">
+                    <h4><i class="fas fa-clock-rotate-left"></i> Historical Weather Events in Pakistan</h4>
+                    <div class="events-timeline">
+                        <div class="event">
+                            <div class="event-date">2022 Monsoon</div>
+                            <div class="event-content">
+                                <h5>Record Rainfall in Sindh</h5>
+                                <p>Pakistan received nearly 190% more rain than its 30-year average in July-August 2022.</p>
+                            </div>
+                        </div>
+                        <div class="event">
+                            <div class="event-date">2015 Heat Wave</div>
+                            <div class="event-content">
+                                <h5>Karachi Heat Wave</h5>
+                                <p>Over 1,200 people died in Karachi during a severe heat wave with temperatures reaching 45°C.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="air-quality" class="main-section">
+            <div class="section-header">
+                <h2><i class="fas fa-smog"></i> Air Quality Index (AQI)</h2>
+            </div>
+            <div class="card aqi-card">
+                <div class="aqi-display">
+                    <h3 id="aqiCategory"></h3>
+                    <div class="aqi-scale">
+                        <div class="scale-item good">Good</div>
+                        <div class="scale-item moderate">Moderate</div>
+                        <div class="scale-item sensitive">Unhealthy for Sensitive Groups</div>
+                        <div class="scale-item unhealthy">Unhealthy</div>
+                        <div class="scale-item very-unhealthy">Very Unhealthy</div>
+                        <div class="scale-item hazardous">Hazardous</div>
+                    </div>
+                    <p id="aqiStatus"></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="about" class="main-section">
+            <div class="section-header">
+                <h2><i class="fas fa-info-circle"></i> About This Dashboard</h2>
+            </div>
+            
+            <div class="card about-section">
+                <div class="about-content">
+                    <p>This is a dummy weather dashboard for Pakistan, created to demonstrate a front-end interface without a working API. It is designed to be responsive and visually appealing. All data displayed is for demonstration purposes only.</p>
+                    
+                    <h3>Features:</h3>
+                    <ul>
+                        <li>Real-time weather data (dummy) for major cities</li>
+                        <li>Hourly and 5-day forecasts (dummy)</li>
+                        <li>Weather alerts (dummy)</li>
+                        <li>Air quality index (dummy)</li>
+                        <li>Interactive weather maps (dummy)</li>
+                    </ul>
+                </div>
+                
+                <div class="team-section">
+                    <h4><i class="fas fa-people-group"></i> Development Team</h4>
+                    <div class="team-members">
+                        <div class="member">
+                            <div class="member-photo"><i class="fas fa-user"></i></div>
+                            <div class="member-name">Alina Azam</div>
+                            <div class="member-role">Lead Developer</div>
+                            <div class="member-social">
+                                <a href="#"><i class="fab fa-github"></i></a>
+                                <a href="#"><i class="fab fa-linkedin"></i></a>
+                            </div>
+                        </div>
+                        <div class="member">
+                            <div class="member-photo"><i class="fas fa-user"></i></div>
+                            <div class="member-name">-</div>
+                            <div class="member-role">Weather Data Analyst</div>
+                            <div class="member-social">
+                                <a href="#"><i class="fab fa-github"></i></a>
+                                <a href="#"><i class="fab fa-linkedin"></i></a>
+                            </div>
+                        </div>
+                        <div class="member">
+                            <div class="member-photo"><i class="fas fa-user"></i></div>
+                            <div class="member-name">-</div>
+                            <div class="member-role">UI/UX Designer</div>
+                            <div class="member-social">
+                                <a href="#"><i class="fab fa-github"></i></a>
+                                <a href="#"><i class="fab fa-linkedin"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="features-section">
+                    <h3><i class="fas fa-star"></i> Key Features</h3>
+                    <div class="features-grid">
+                        <div class="feature-box">
+                            <div class="feature-icon"><i class="fas fa-cloud-sun"></i></div>
+                            <h4>Real-time Weather</h4>
+                            <p>Get up-to-the-minute weather data for any location in Pakistan with multiple parameters.</p>
+                        </div>
+                        <div class="feature-box">
+                            <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                            <h4>Detailed Forecasts</h4>
+                            <p>Hourly and 5-day forecasts with interactive charts and comprehensive data.</p>
+                        </div>
+                        <div class="feature-box">
+                            <div class="feature-icon"><i class="fas fa-map-marked-alt"></i></div>
+                            <h4>Weather Maps</h4>
+                            <p>Interactive maps showing temperature, precipitation, wind and cloud cover across Pakistan.</p>
+                        </div>
+                        <div class="feature-box">
+                            <div class="feature-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <h4>Severe Weather Alerts</h4>
+                            <p>Timely notifications for extreme weather events like heatwaves, floods, and storms.</p>
+                        </div>
+                        <div class="feature-box">
+                            <div class="feature-icon"><i class="fas fa-lungs"></i></div>
+                            <h4>Air Quality Index</h4>
+                            <p>Comprehensive air pollution data with health recommendations, especially useful for smog season.</p>
+                        </div>
+                        <div class="feature-box">
+                            <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                            <h4>Responsive Design</h4>
+                            <p>Works perfectly on all devices from mobile phones to desktop computers.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cities-section">
+                    <h3><i class="fas fa-city"></i> Major Pakistani Cities</h3>
+                    <div class="cities-grid">
+                        <button class="city-btn" onclick="searchCity('Karachi')">
+                            <i class="fas fa-city"></i> Karachi
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Lahore')">
+                            <i class="fas fa-mosque"></i> Lahore
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Islamabad')">
+                            <i class="fas fa-mountain"></i> Islamabad
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Peshawar')">
+                            <i class="fas fa-archway"></i> Peshawar
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Quetta')">
+                            <i class="fas fa-tree"></i> Quetta
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Faisalabad')">
+                            <i class="fas fa-industry"></i> Faisalabad
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Multan')">
+                            <i class="fas fa-sun"></i> Multan
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Hyderabad')">
+                            <i class="fas fa-umbrella-beach"></i> Hyderabad
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Rawalpindi')">
+                            <i class="fas fa-subway"></i> Rawalpindi
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Gujranwala')">
+                            <i class="fas fa-utensils"></i> Gujranwala
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Sialkot')">
+                            <i class="fas fa-futbol"></i> Sialkot
+                        </button>
+                        <button class="city-btn" onclick="searchCity('Bahawalpur')">
+                            <i class="fas fa-fort-awesome"></i> Bahawalpur
+                        </button>
+                    </div>
+                </div>
+
+                <div class="weather-tips">
+                    <h3><i class="fas fa-lightbulb"></i> Seasonal Weather Preparedness</h3>
+                    <div class="tips-container">
+                        <div class="tip-card summer">
+                            <h4><i class="fas fa-sun"></i> Summer (April-June)</h4>
+                            <ul>
+                                <li><i class="fas fa-check"></i> Stay hydrated and avoid direct sunlight during peak hours (11am-3pm)</li>
+                                <li><i class="fas fa-check"></i> Use sunscreen with SPF 30+ when going outside</li>
+                                <li><i class="fas fa-check"></i> Wear light-colored, loose-fitting clothing</li>
+                                <li><i class="fas fa-check"></i> Be aware of heatstroke symptoms</li>
+                            </ul>
+                        </div>
+                        <div class="tip-card monsoon">
+                            <h4><i class="fas fa-cloud-rain"></i> Monsoon (July-September)</h4>
+                            <ul>
+                                <li><i class="fas fa-check"></i> Prepare for potential flooding in low-lying areas</li>
+                                <li><i class="fas fa-check"></i> Avoid unnecessary travel during heavy rains</li>
+                                <li><i class="fas fa-check"></i> Check weather updates before planning outdoor activities</li>
+                                <li><i class="fas fa-check"></i> Be cautious of waterborne diseases</li>
+                            </ul>
+                        </div>
+                        <div class="tip-card winter">
+                            <h4><i class="fas fa-snowflake"></i> Winter (December-February)</h4>
+                            <ul>
+                                <li><i class="fas fa-check"></i> Layer clothing to stay warm in northern regions</li>
+                                <li><i class="fas fa-check"></i> Use safe heating methods to prevent carbon monoxide poisoning</li>
+                                <li><i class="fas fa-check"></i> Be cautious of fog-related travel disruptions</li>
+                                <li><i class="fas fa-check"></i> Check on elderly neighbors during cold spells</li>
+                            </ul>
+                        </div>
+                        <div class="tip-card smog">
+                            <h4><i class="fas fa-smog"></i> Smog Season (October-November)</h4>
+                            <ul>
+                                <li><i class="fas fa-check"></i> Wear N95 masks when air quality is poor</li>
+                                <li><i class="fas fa-check"></i> Limit outdoor physical activity</li>
+                                <li><i class="fas fa-check"></i> Use air purifiers indoors when possible</li>
+                                <li><i class="fas fa-check"></i> Keep windows closed during high pollution periods</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer-section">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-about">
+                    <h3>Pakistan Weather Dashboard</h3>
+                    <p>
+                        Providing accurate and timely weather information for all regions of Pakistan.
+                        Our goal is to help citizens stay informed and prepared for all weather conditions.
+                    </p>
+                    <div class="app-links">
+                        <button class="download-btn">
+                            <i class="fab fa-google-play"></i> Get on Play Store
+                        </button>
+                        <button class="download-btn">
+                            <i class="fab fa-apple"></i> Download on App Store
+                        </button>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#current"><i class="fas fa-chevron-right"></i> Current Weather</a></li>
+                        <li><a href="#forecast"><i class="fas fa-chevron-right"></i> Forecast</a></li>
+                        <li><a href="#maps"><i class="fas fa-chevron-right"></i> Weather Maps</a></li>
+                        <li><a href="#alerts"><i class="fas fa-chevron-right"></i> Weather Alerts</a></li>
+                        <li><a href="#about"><i class="fas fa-chevron-right"></i> About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h3>Contact Us</h3>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i> info@pakweather.com
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i> +92 300 1234567
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i> Lahore, Pakistan
+                    </div>
+                    <div class="social-links">
+                        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-legal">
+                    <a href="#"><i class="fas fa-shield-halved"></i> Privacy Policy</a>
+                    <a href="#"><i class="fas fa-file-contract"></i> Terms of Service</a>
+                    <a href="#"><i class="fas fa-cookie-bite"></i> Cookie Policy</a>
+                </div>
+                <div class="footer-copyright">
+                    &copy; 2025 Pakistan Weather Dashboard. All rights reserved.
+                    <span id="version">v2.1.0</span>
+                </div>
+                <div class="footer-attribution">
+                    <i class="fas fa-database"></i> Weather data provided by OpenWeather and Pakistan Meteorological Department
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <button id="backToTop" aria-label="Back to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <div class="alert-toast" id="alertToast">
+        <div class="toast-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="toast-message" id="toastMessage"></div>
+            <button class="toast-close" aria-label="Close">&times;</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
